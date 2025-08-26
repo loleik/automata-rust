@@ -11,17 +11,48 @@ struct DFA {
 impl DFA {
     // Generate a basic DFA from the first example at:
     // https://en.wikipedia.org/wiki/Deterministic_finite_automaton
-    fn new_basic_dfa() -> DFA {
+    fn even_zeros() -> DFA {
         DFA {
-            states: HashSet::from(["S1".to_string(), "S2".to_string()]),
+            states: HashSet::from([
+                "S1".to_string(),
+                "S2".to_string()
+            ]),
             alphabet: HashSet::from(['0', '1']),
             transitions: HashMap::from([
                 (("S1".to_string(), '0'), "S2".to_string()),
                 (("S1".to_string(), '1'), "S1".to_string()),
+
                 (("S2".to_string(), '0'), "S1".to_string()),
                 (("S2".to_string(), '1'), "S2".to_string())
             ]),
             start: "S1".to_string(),
+            accept: HashSet::from(["S1".to_string()])
+        }
+    }
+
+    fn starts_ends_a() -> DFA {
+        DFA {
+            states: HashSet::from([
+                "S0".to_string(),
+                "S1".to_string(),
+                "S2".to_string(),
+                "S3".to_string()
+            ]),
+            alphabet: HashSet::from(['a', 'b']),
+            transitions: HashMap::from([
+                (("S0".to_string(), 'a'), "S1".to_string()),
+                (("S0".to_string(), 'b'), "S3".to_string()),
+
+                (("S1".to_string(), 'a'), "S1".to_string()),
+                (("S1".to_string(), 'b'), "S2".to_string()),
+
+                (("S2".to_string(), 'a'), "S1".to_string()),
+                (("S2".to_string(), 'b'), "S2".to_string()),
+
+                (("S3".to_string(), 'a'), "S3".to_string()),
+                (("S3".to_string(), 'b'), "S3".to_string())
+            ]),
+            start: "S0".to_string(),
             accept: HashSet::from(["S1".to_string()])
         }
     }
@@ -36,16 +67,21 @@ fn simulate(
 
     match mode {
         "random" => {
-            let end: u8 = rand::random_range(0..10); // Maximum length for input stream    
+            let end: u8 = rand::random_range(0..u8::MAX); // Maximum length for input stream
 
             for _ in 0..end {
-                let next: char = match rand::random_bool(1.0 / 2.0) {
-                    true => '1',
-                    false => '0'
-                }; // Generate the next value of the input stream
+                 // Generate the next value of the input stream
+                let ind: usize = rand::random_range(0..dfa.alphabet.len());
+                let next: char = *dfa.alphabet.iter().nth(ind).unwrap();
+
+                println!("{:?} -> {}",
+                    &(state.clone(),next),
+                    dfa.transitions.get(&(state.clone(), next)).unwrap().clone()
+                );
                 
                 state = dfa.transitions.get(&(state, next)).unwrap().clone();
             }
+            println!();
         }
         "test" => {
             let end: usize = test.unwrap_or("").len();
@@ -60,20 +96,18 @@ fn simulate(
     }
 
     if dfa.accept.contains(&state) {
-        println!("Yes, input stream has an even number of 0's (or none)");
+        println!("TRUE");
         true
     } else {
-        println!("No, input stream as an odd number of 0's");
+        println!("FALSE");
         false
     }
 }
 
 fn main() {
-    let dfa: DFA = DFA::new_basic_dfa();
+    let dfa: DFA = DFA::starts_ends_a();
 
-    //simulate(dfa, "random", None);
-
-    simulate(dfa, "test", Some("111"));
+    simulate(dfa, "random", None);
 }
 
 #[cfg(test)]
@@ -82,7 +116,7 @@ mod tests {
 
     #[test]
     fn empty_input() {
-        let dfa: DFA = DFA::new_basic_dfa();
+        let dfa: DFA = DFA::even_zeros();
 
         let result: bool = simulate(dfa, "test", None);
 
@@ -91,7 +125,7 @@ mod tests {
 
     #[test]
     fn even_input() {
-        let dfa: DFA = DFA::new_basic_dfa();
+        let dfa: DFA = DFA::even_zeros();
 
         let result: bool = simulate(dfa, "test", Some("00"));
 
@@ -100,7 +134,7 @@ mod tests {
 
     #[test]
     fn odd_input() {
-        let dfa: DFA = DFA::new_basic_dfa();
+        let dfa: DFA = DFA::even_zeros();
 
         let result: bool = simulate(dfa, "test", Some("01"));
 
@@ -109,7 +143,7 @@ mod tests {
 
     #[test]
     fn all_ones() {
-        let dfa: DFA = DFA::new_basic_dfa();
+        let dfa: DFA = DFA::even_zeros();
 
         let result: bool = simulate(dfa, "test", Some("111"));
 
@@ -118,7 +152,7 @@ mod tests {
 
     #[test]
     fn single_zero() {
-        let dfa: DFA = DFA::new_basic_dfa();
+        let dfa: DFA = DFA::even_zeros();
 
         let result: bool = simulate(dfa, "test", Some("0"));
 
@@ -127,7 +161,7 @@ mod tests {
 
     #[test]
     fn even_zeros_with_ones() {
-        let dfa: DFA = DFA::new_basic_dfa();
+        let dfa: DFA = DFA::even_zeros();
 
         let result: bool = simulate(dfa, "test", Some("0101010"));
 
@@ -136,7 +170,7 @@ mod tests {
 
     #[test]
     fn odd_zeros_with_ones() {
-        let dfa: DFA = DFA::new_basic_dfa();
+        let dfa: DFA = DFA::even_zeros();
 
         let result: bool = simulate(dfa, "test", Some("101010"));
 
@@ -145,7 +179,7 @@ mod tests {
 
     #[test]
     fn long_input_even_zeros() {
-        let dfa: DFA = DFA::new_basic_dfa();
+        let dfa: DFA = DFA::even_zeros();
 
         let result: bool = simulate(dfa, "test", Some("0".repeat(100).as_str()));
         
