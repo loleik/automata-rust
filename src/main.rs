@@ -116,37 +116,6 @@ mod tests {
         assert_eq!(result, true)
     }
 
-    #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn empty_input() {
-        let dfa: DFA = DFA::new_basic_dfa();
-
-        let result: bool = simulate(dfa, "test", None);
-
-        assert_eq!(result, true)
-    }
-
-    #[test]
-    fn even_input() {
-        let dfa: DFA = DFA::new_basic_dfa();
-
-        let result: bool = simulate(dfa, "test", Some("00"));
-
-        assert_eq!(result, true)
-    }
-
-    #[test]
-    fn odd_input() {
-        let dfa: DFA = DFA::new_basic_dfa();
-
-        let result: bool = simulate(dfa, "test", Some("01"));
-
-        assert_eq!(result, false)
-    }
-
     #[test]
     fn single_zero() {
         let dfa: DFA = DFA::new_basic_dfa();
@@ -182,5 +151,4 @@ mod tests {
         
         assert_eq!(result, true);
     }
-}
 }
