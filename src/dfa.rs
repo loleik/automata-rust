@@ -25,7 +25,7 @@ impl Serialize for TransitionKey {
     where
         S: serde::Serializer 
     {
-        let key: String = format!("({}, {})", self.0, self.1);
+        let key: String = format!("{}:{}", self.0, self.1);
         serializer.serialize_str(&key)
     }
 }

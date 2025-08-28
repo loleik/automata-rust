@@ -54,7 +54,7 @@ fn main() {
                 let dfa: DFA = constructor();
 
                 DFA::visualize(&dfa);
-                simulate(dfa, "test", Some("00"));
+                simulate(dfa, "random", None);
                 println!("----------");
                 DFA::de_json();   
             }
