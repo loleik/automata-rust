@@ -1,5 +1,7 @@
 use std::collections::{HashSet, HashMap};
 
+// Now working on json branch
+
 struct DFA {
     states: HashSet<String>, // Set of all states, Q
     alphabet: HashSet<char>, // Set of input symbols, Σ
