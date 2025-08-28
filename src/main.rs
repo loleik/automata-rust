@@ -1,6 +1,7 @@
 use std::collections::{HashSet, HashMap};
 
 // Now working on json branch
+// This branch is for integrating json in a number of ways
 
 struct DFA {
     states: HashSet<String>, // Set of all states, Q
