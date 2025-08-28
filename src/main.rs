@@ -55,6 +55,8 @@ fn main() {
 
                 DFA::visualize(&dfa);
                 simulate(dfa, "test", Some("00"));
+                println!("----------");
+                DFA::de_json();   
             }
             else { println!("Please enter [json] or [example]") }
         },

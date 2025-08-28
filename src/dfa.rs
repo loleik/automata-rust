@@ -1,11 +1,13 @@
+use core::fmt;
 use std::collections::{HashSet, HashMap};
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
+use serde::de::{self, Visitor};
 use serde_json::to_string_pretty;
 
 // Now working on json branch
 // This branch is for integrating json in a number of ways
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct DFA {
     states: HashSet<String>, // Set of all states, Q
     alphabet: HashSet<char>, // Set of input symbols, Σ
@@ -25,6 +27,44 @@ impl Serialize for TransitionKey {
     {
         let key: String = format!("({}, {})", self.0, self.1);
         serializer.serialize_str(&key)
+    }
+}
+
+impl<'de> Deserialize<'de> for TransitionKey {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de> 
+    {
+        struct TransitionKeyVisitor;
+
+        impl<'de> Visitor<'de> for TransitionKeyVisitor {
+            type Value = TransitionKey;
+
+            fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                f.write_str("a string in the format state:char")
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                let mut parts = v.splitn(2, ':');
+                let state: String = parts 
+                    .next()
+                    .ok_or_else(|| E::custom("missing state"))?
+                    .to_string();
+                let ch: char = parts
+                    .next()
+                    .ok_or_else(|| E::custom("missing char"))?
+                    .chars()
+                    .next()
+                    .ok_or_else(|| E::custom("empty char"))?;
+
+                Ok(TransitionKey(state, ch))
+            }
+        }
+
+        deserializer.deserialize_str(TransitionKeyVisitor)
     }
 }
 
@@ -89,6 +129,28 @@ impl DFA {
 
     pub fn visualize(dfa: &DFA) {
         println!("{}", to_string_pretty(dfa).unwrap())
+    }
+
+    pub fn de_json() {
+        let test: &'static str =  r#"
+        {
+          "states": ["q0", "q1"],
+          "alphabet": ["a", "b"],
+          "transitions": {
+            "q0:a": "q1",
+            "q0:b": "q0",
+            "q1:a": "q1",
+            "q1:b": "q0"
+          },
+          "start": "q0",
+          "accept": ["q1"],
+          "description": "Example DFA"
+        }
+        "#;
+
+        let dfa: DFA = serde_json::from_str(test).unwrap();
+
+        DFA::visualize(&dfa);
     }
 }
 
