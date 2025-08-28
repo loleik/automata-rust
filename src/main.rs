@@ -38,7 +38,7 @@ fn main() {
                     .read_line(&mut input)
                     .expect("Failed");
 
-                let number = match input.trim().parse() {
+                let number: usize = match input.trim().parse::<usize>() {
                     Ok(n) => n,
                     Err(_) => {
                         println!("Invalid input, please input a number");
@@ -51,11 +51,10 @@ fn main() {
                         .find(|(id, _, _)| *id == number)
                         .expect("Invalid choice");
 
-                println!("You chose: {description}");
-
                 let dfa: DFA = constructor();
 
-                DFA::visualize(dfa);
+                DFA::visualize(&dfa);
+                simulate(dfa, "test", Some("aabbbaa"));
             }
             else { println!("Please enter [json] or [example]") }
         },
