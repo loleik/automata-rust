@@ -1,191 +1,64 @@
-use std::collections::{HashSet, HashMap};
+mod dfa;
 
-// Now working on json branch
-// This branch is for integrating json in a number of ways
+use clap::{arg, Command};
+use std::io;
+use dfa::{DFA, simulate};
 
-struct DFA {
-    states: HashSet<String>, // Set of all states, Q
-    alphabet: HashSet<char>, // Set of input symbols, Σ
-    transitions: HashMap<(String, char), String>, // Transition functions, δ: Q × Σ → Q
-    start: String, // Initial state, q_0 ∈ Q
-    accept: HashSet<String> // Set of accepting/final states, F ⊆ Q
-}
+use crate::dfa::EXAMPLES;
 
-impl DFA {
-    // Generate a basic DFA from the first example at:
-    // https://en.wikipedia.org/wiki/Deterministic_finite_automaton
-    fn even_zeros() -> DFA {
-        DFA {
-            states: HashSet::from([
-                "S1".to_string(),
-                "S2".to_string()
-            ]),
-            alphabet: HashSet::from(['0', '1']),
-            transitions: HashMap::from([
-                (("S1".to_string(), '0'), "S2".to_string()),
-                (("S1".to_string(), '1'), "S1".to_string()),
-
-                (("S2".to_string(), '0'), "S1".to_string()),
-                (("S2".to_string(), '1'), "S2".to_string())
-            ]),
-            start: "S1".to_string(),
-            accept: HashSet::from(["S1".to_string()])
-        }
-    }
-
-    fn starts_ends_a() -> DFA {
-        DFA {
-            states: HashSet::from([
-                "S0".to_string(),
-                "S1".to_string(),
-                "S2".to_string(),
-                "S3".to_string()
-            ]),
-            alphabet: HashSet::from(['a', 'b']),
-            transitions: HashMap::from([
-                (("S0".to_string(), 'a'), "S1".to_string()),
-                (("S0".to_string(), 'b'), "S3".to_string()),
-
-                (("S1".to_string(), 'a'), "S1".to_string()),
-                (("S1".to_string(), 'b'), "S2".to_string()),
-
-                (("S2".to_string(), 'a'), "S1".to_string()),
-                (("S2".to_string(), 'b'), "S2".to_string()),
-
-                (("S3".to_string(), 'a'), "S3".to_string()),
-                (("S3".to_string(), 'b'), "S3".to_string())
-            ]),
-            start: "S0".to_string(),
-            accept: HashSet::from(["S1".to_string()])
-        }
-    }
-}
-
-fn simulate(
-    dfa: DFA,
-    mode: &str,
-    test: Option<&str>
-) -> bool {
-    let mut state: String = dfa.start;
-
-    match mode {
-        "random" => {
-            let end: u8 = rand::random_range(0..u8::MAX); // Maximum length for input stream
-
-            for _ in 0..end {
-                 // Generate the next value of the input stream
-                let ind: usize = rand::random_range(0..dfa.alphabet.len());
-                let next: char = *dfa.alphabet.iter().nth(ind).unwrap();
-
-                println!("{:?} -> {}",
-                    &(state.clone(),next),
-                    dfa.transitions.get(&(state.clone(), next)).unwrap().clone()
-                );
-                
-                state = dfa.transitions.get(&(state, next)).unwrap().clone();
-            }
-            println!();
-        }
-        "test" => {
-            let end: usize = test.unwrap_or("").len();
-
-            for i in 0..end {
-                let next: char = test.unwrap_or("").chars().nth(i).unwrap();
-                
-                state = dfa.transitions.get(&(state, next)).unwrap().clone();
-            }
-        }
-        _ => {}
-    }
-
-    if dfa.accept.contains(&state) {
-        println!("TRUE");
-        true
-    } else {
-        println!("FALSE");
-        false
-    }
+fn cli() -> Command {
+    Command::new("automata")
+        .about("Several different automata based simulations")
+        .subcommand_required(true)
+        .arg_required_else_help(true)
+        .allow_external_subcommands(true)
+        .subcommand(
+            Command::new("dfa")
+            .about("Deterministic Finite Automata")
+            .arg(arg!(<TYPE> "[json] input or pre-defined [example]"))
+            .arg_required_else_help(true)
+        )
 }
 
 fn main() {
-    let dfa: DFA = DFA::starts_ends_a();
+    let matches: clap::ArgMatches = cli().get_matches();
 
-    simulate(dfa, "random", None);
-}
+    match matches.subcommand() {
+        Some(("dfa", sub_matches)) => {
+            let mode: &String = sub_matches.get_one::<String>("TYPE").unwrap();
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+            if mode.as_str() == "json" {}
+            else if mode == "example" {
+                for (x, _, z) in EXAMPLES {
+                    println!("{x} : {z}")
+                }
 
-    #[test]
-    fn empty_input() {
-        let dfa: DFA = DFA::even_zeros();
+                let mut input = String::new();
+                io::stdin()
+                    .read_line(&mut input)
+                    .expect("Failed");
 
-        let result: bool = simulate(dfa, "test", None);
+                let number = match input.trim().parse() {
+                    Ok(n) => n,
+                    Err(_) => {
+                        println!("Invalid input, please input a number");
+                        return;
+                    }
+                };
 
-        assert_eq!(result, true)
-    }
+                let (_, constructor, description) = EXAMPLES
+                        .iter()
+                        .find(|(id, _, _)| *id == number)
+                        .expect("Invalid choice");
 
-    #[test]
-    fn even_input() {
-        let dfa: DFA = DFA::even_zeros();
+                println!("You chose: {description}");
 
-        let result: bool = simulate(dfa, "test", Some("00"));
+                let dfa: DFA = constructor();
 
-        assert_eq!(result, true)
-    }
-
-    #[test]
-    fn odd_input() {
-        let dfa: DFA = DFA::even_zeros();
-
-        let result: bool = simulate(dfa, "test", Some("01"));
-
-        assert_eq!(result, false)
-    }
-
-    #[test]
-    fn all_ones() {
-        let dfa: DFA = DFA::even_zeros();
-
-        let result: bool = simulate(dfa, "test", Some("111"));
-
-        assert_eq!(result, true)
-    }
-
-    #[test]
-    fn single_zero() {
-        let dfa: DFA = DFA::even_zeros();
-
-        let result: bool = simulate(dfa, "test", Some("0"));
-
-        assert_eq!(result, false)
-    }
-
-    #[test]
-    fn even_zeros_with_ones() {
-        let dfa: DFA = DFA::even_zeros();
-
-        let result: bool = simulate(dfa, "test", Some("0101010"));
-
-        assert_eq!(result, true);
-    }
-
-    #[test]
-    fn odd_zeros_with_ones() {
-        let dfa: DFA = DFA::even_zeros();
-
-        let result: bool = simulate(dfa, "test", Some("101010"));
-
-        assert_eq!(result, false);
-    }
-
-    #[test]
-    fn long_input_even_zeros() {
-        let dfa: DFA = DFA::even_zeros();
-
-        let result: bool = simulate(dfa, "test", Some("0".repeat(100).as_str()));
-        
-        assert_eq!(result, true);
+                DFA::visualize(dfa);
+            }
+            else { println!("Please enter [json] or [example]") }
+        },
+        _ => {}
     }
 }
