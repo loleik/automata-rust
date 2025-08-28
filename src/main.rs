@@ -54,7 +54,7 @@ fn main() {
                 let dfa: DFA = constructor();
 
                 DFA::visualize(&dfa);
-                simulate(dfa, "test", Some("aabbbaa"));
+                simulate(dfa, "test", Some("00"));
             }
             else { println!("Please enter [json] or [example]") }
         },

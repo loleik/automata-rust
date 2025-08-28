@@ -41,7 +41,7 @@ impl DFA {
             (TransitionKey("S1".to_string(), '0'), "S2".to_string()),
             (TransitionKey("S1".to_string(), '1'), "S1".to_string()),
             (TransitionKey("S2".to_string(), '0'), "S1".to_string()),
-            (TransitionKey("S2".to_string(), '0'), "S2".to_string())  
+            (TransitionKey("S2".to_string(), '1'), "S2".to_string())  
         ]);
 
         DFA {
