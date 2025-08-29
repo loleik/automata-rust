@@ -1,7 +1,8 @@
 mod dfa;
 
 use clap::{arg, Command};
-use std::io::{self, stdin};
+use std::io::{self, Write};
+use std::fs;
 use dfa::{DFA, simulate};
 
 use crate::dfa::EXAMPLES;
@@ -22,6 +23,8 @@ fn cli() -> Command {
 
 fn cls() {
     print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
+
+    io::stdout().flush().unwrap();
 }
 
 fn grab_number() -> usize {
@@ -42,19 +45,20 @@ fn grab_number() -> usize {
     };
 }
 
-fn grab_string(dfa: &DFA) -> String {
+fn grab_string(dfa: Option<&DFA>) -> String {
     'outer: loop {
         let mut input: String = String::new();
 
         io::stdin()
             .read_line(&mut input)
             .expect("Failed");
-
-        for c in input.trim().chars() {
-            if !dfa.alphabet.contains(&c) {
-                println!("Input must be in the DFA alphabet {c}");
-                println!("{:?}", dfa.alphabet);
-                continue 'outer;
+        if dfa.is_some() {
+            for c in input.trim().chars() {
+                if !dfa.unwrap().alphabet.contains(&c) {
+                    println!("Input must be in the DFA alphabet {c}");
+                    println!("{:?}", dfa.unwrap().alphabet);
+                    continue 'outer;
+                }
             }
         }
 
@@ -62,7 +66,7 @@ fn grab_string(dfa: &DFA) -> String {
     };
 }
 
-fn main() {
+fn main() -> io::Result<()> {
     let matches: clap::ArgMatches = cli().get_matches();
 
     cls();
@@ -71,53 +75,65 @@ fn main() {
         Some(("dfa", sub_matches)) => {
             let mode: &String = sub_matches.get_one::<String>("TYPE").unwrap();
 
-            if mode.as_str() == "json" {}
-            else if mode == "example" {
+            let dfa: DFA = match mode.as_str() {
+                "json" => {
+                    println!("Give me a file name!");
+                    let json_data: String = fs::read_to_string(grab_string(None))?;
 
-                for (x, _, z) in EXAMPLES {
-                    println!("{x} : {z}")
+                    DFA::de_json(&json_data)
                 }
+                "example" => {
+                    for (x, _, z) in EXAMPLES {
+                        println!("{x} : {z}")
+                    }
 
-                let dfa_selector: usize = grab_number();
+                    let dfa_selector: usize = grab_number();
 
-                let (_, constructor, _) = EXAMPLES
-                        .iter()
-                        .find(|(id, _, _)| *id == dfa_selector)
-                        .expect("Invalid choice");
+                    let (_, constructor, _) = EXAMPLES
+                            .iter()
+                            .find(|(id, _, _)| *id == dfa_selector)
+                            .expect("Invalid choice");
 
-                let dfa: DFA = constructor();
-
-                println!();
-
-                DFA::visualize(&dfa);
-
-                println!();
-                println!("DFA constructed. Please select input type:");
-                println!("1 : Generate a random input stream\n2 : Specify input");
-
-                let input_type: usize = grab_number();
-
-                println!();
-
-                match input_type {
-                    1 => {
-                        simulate(dfa, "random", None);
-                    },
-                    2 => {
-                        println!("Please enter input:");
-                        
-                        let input: String = grab_string(&dfa);
-
-                        simulate(dfa, "test", Some(&input.trim()));
-                    },
-                    _ => { println!("Invalid input") }
+                    constructor()
                 }
+                _ => {
+                    return Err(
+                        io::Error::new(
+                            io::ErrorKind::InvalidInput, 
+                            "Please enter [json] or [example]"
+                        )
+                    );
+                }
+            };
 
-                //println!("----------");
-                //DFA::de_json();   
+            println!();
+
+            DFA::visualize(&dfa);
+
+            println!();
+            println!("DFA constructed. Please select input type:");
+            println!("1 : Generate a random input stream\n2 : Specify input");
+
+            let input_type: usize = grab_number();
+
+            println!();
+
+            match input_type {
+                1 => {
+                    simulate(dfa, "random", None);
+                },
+                2 => {
+                    println!("Please enter input:");
+                    
+                    let input: String = grab_string(Some(&dfa));
+
+                    simulate(dfa, "test", Some(&input.trim()));
+                },
+                _ => { println!("Invalid input") }
             }
-            else { println!("Please enter [json] or [example]") }
         },
         _ => {}
     }
+
+    Ok(())
 }

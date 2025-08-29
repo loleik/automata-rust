@@ -131,26 +131,8 @@ impl DFA {
         println!("{}", to_string_pretty(dfa).unwrap())
     }
 
-    pub fn de_json() {
-        let test: &'static str =  r#"
-        {
-          "states": ["q0", "q1"],
-          "alphabet": ["a", "b"],
-          "transitions": {
-            "q0:a": "q1",
-            "q0:b": "q0",
-            "q1:a": "q1",
-            "q1:b": "q0"
-          },
-          "start": "q0",
-          "accept": ["q1"],
-          "description": "Example DFA"
-        }
-        "#;
-
-        let dfa: DFA = serde_json::from_str(test).unwrap();
-
-        DFA::visualize(&dfa);
+    pub fn de_json(json_data: &str) -> DFA {
+        serde_json::from_str(json_data).unwrap()
     }
 }
 
