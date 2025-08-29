@@ -37,30 +37,43 @@ impl<'de> Deserialize<'de> for TransitionKey {
     {
         struct TransitionKeyVisitor;
 
+
         impl<'de> Visitor<'de> for TransitionKeyVisitor {
             type Value = TransitionKey;
 
             fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                f.write_str("a string in the format state:char")
+                f.write_str("a string in the format state:char (e.g. q0:a)")
             }
 
             fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
             where
                 E: de::Error,
             {
-                let mut parts = v.splitn(2, ':');
-                let state: String = parts 
-                    .next()
-                    .ok_or_else(|| E::custom("missing state"))?
-                    .to_string();
-                let ch: char = parts
-                    .next()
-                    .ok_or_else(|| E::custom("missing char"))?
-                    .chars()
-                    .next()
-                    .ok_or_else(|| E::custom("empty char"))?;
+                let parts: Vec<&str> = v.split(':').collect();
+                if parts.len() != 2 {
+                    return Err(E::custom(format!("Invalid transition key '{}'", v)));
+                }
 
-                Ok(TransitionKey(state, ch))
+                let state = parts[0].trim();
+                if state.is_empty() {
+                    return Err(E::custom("State cannot be empty"));
+                }
+
+                let symbol_str = parts[1].trim();
+                let mut chars = symbol_str.chars();
+
+                let ch = chars
+                    .next()
+                    .ok_or_else(|| E::custom("Missing symbol after colon"))?;
+
+                if chars.next().is_some() {
+                    return Err(E::custom(format!(
+                        "Symbol must be a single char, got '{}'",
+                        symbol_str
+                    )));
+                }
+
+                Ok(TransitionKey(state.to_string(), ch))
             }
         }
 
