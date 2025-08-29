@@ -1,188 +1,153 @@
-use std::collections::{HashSet, HashMap};
+mod dfa;
 
-struct DFA {
-    states: HashSet<String>, // Set of all states, Q
-    alphabet: HashSet<char>, // Set of input symbols, Σ
-    transitions: HashMap<(String, char), String>, // Transition functions, δ: Q × Σ → Q
-    start: String, // Initial state, q_0 ∈ Q
-    accept: HashSet<String> // Set of accepting/final states, F ⊆ Q
+use clap::{arg, Command};
+use std::io::{self, Write};
+use std::fs;
+use dfa::{DFA, simulate};
+
+use crate::dfa::EXAMPLES;
+
+fn cli() -> Command {
+    Command::new("automata")
+        .about("Several different automata based simulations")
+        .subcommand_required(true)
+        .arg_required_else_help(true)
+        .allow_external_subcommands(true)
+        .subcommand(
+            Command::new("dfa")
+            .about("Deterministic Finite Automata")
+            .arg(arg!(<TYPE> "[json] input or pre-defined [example]"))
+            .arg_required_else_help(true)
+        )
 }
 
-impl DFA {
-    // Generate a basic DFA from the first example at:
-    // https://en.wikipedia.org/wiki/Deterministic_finite_automaton
-    fn even_zeros() -> DFA {
-        DFA {
-            states: HashSet::from([
-                "S1".to_string(),
-                "S2".to_string()
-            ]),
-            alphabet: HashSet::from(['0', '1']),
-            transitions: HashMap::from([
-                (("S1".to_string(), '0'), "S2".to_string()),
-                (("S1".to_string(), '1'), "S1".to_string()),
+fn cls() {
+    print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
 
-                (("S2".to_string(), '0'), "S1".to_string()),
-                (("S2".to_string(), '1'), "S2".to_string())
-            ]),
-            start: "S1".to_string(),
-            accept: HashSet::from(["S1".to_string()])
-        }
-    }
-
-    fn starts_ends_a() -> DFA {
-        DFA {
-            states: HashSet::from([
-                "S0".to_string(),
-                "S1".to_string(),
-                "S2".to_string(),
-                "S3".to_string()
-            ]),
-            alphabet: HashSet::from(['a', 'b']),
-            transitions: HashMap::from([
-                (("S0".to_string(), 'a'), "S1".to_string()),
-                (("S0".to_string(), 'b'), "S3".to_string()),
-
-                (("S1".to_string(), 'a'), "S1".to_string()),
-                (("S1".to_string(), 'b'), "S2".to_string()),
-
-                (("S2".to_string(), 'a'), "S1".to_string()),
-                (("S2".to_string(), 'b'), "S2".to_string()),
-
-                (("S3".to_string(), 'a'), "S3".to_string()),
-                (("S3".to_string(), 'b'), "S3".to_string())
-            ]),
-            start: "S0".to_string(),
-            accept: HashSet::from(["S1".to_string()])
-        }
-    }
+    io::stdout().flush().unwrap();
 }
 
-fn simulate(
-    dfa: DFA,
-    mode: &str,
-    test: Option<&str>
-) -> bool {
-    let mut state: String = dfa.start;
+fn grab_number() -> usize {
+    loop {
+        let mut input: String = String::new();
 
-    match mode {
-        "random" => {
-            let end: u8 = rand::random_range(0..u8::MAX); // Maximum length for input stream
+        io::stdin()
+            .read_line(&mut input)
+            .expect("Failed");
 
-            for _ in 0..end {
-                 // Generate the next value of the input stream
-                let ind: usize = rand::random_range(0..dfa.alphabet.len());
-                let next: char = *dfa.alphabet.iter().nth(ind).unwrap();
-
-                println!("{:?} -> {}",
-                    &(state.clone(),next),
-                    dfa.transitions.get(&(state.clone(), next)).unwrap().clone()
-                );
-                
-                state = dfa.transitions.get(&(state, next)).unwrap().clone();
+        match input.trim().parse::<usize>() {
+            Ok(n) => return n,
+            Err(_) => {
+                println!("Invalid input, please input a number");
+                continue;
             }
+        };
+    };
+}
+
+fn grab_string(dfa: Option<&DFA>) -> String {
+    'outer: loop {
+        let mut input: String = String::new();
+
+        io::stdin()
+            .read_line(&mut input)
+            .expect("Failed");
+        if dfa.is_some() {
+            for c in input.trim().chars() {
+                if !dfa.unwrap().alphabet.contains(&c) {
+                    println!("Input must be in the DFA alphabet {c}");
+                    println!("{:?}", dfa.unwrap().alphabet);
+                    continue 'outer;
+                }
+            }
+        }
+
+        return input.trim().to_string()
+    };
+}
+
+fn main() -> io::Result<()> {
+    let matches: clap::ArgMatches = cli().get_matches();
+
+    cls();
+
+    match matches.subcommand() {
+        Some(("dfa", sub_matches)) => {
+            let mode: &String = sub_matches.get_one::<String>("TYPE").unwrap();
+
+            let dfa: DFA = match mode.as_str() {
+                "json" => {
+                    println!("Give me a file name!");
+                    let json_data: String = fs::read_to_string(grab_string(None))?;
+
+                    match DFA::de_json(&json_data) {
+                        Ok(dfa) => dfa,
+                        Err(errors) => {
+                            for e in errors {
+                                eprintln!(" - {e}");
+                            };
+
+                            return Err(
+                                io::Error::new(
+                                    io::ErrorKind::InvalidInput, 
+                                    "There were errors with the provided file"
+                                )
+                            );
+                        }
+                    }
+                }
+                "example" => {
+                    for (x, _, z) in EXAMPLES {
+                        println!("{x} : {z}")
+                    }
+
+                    let dfa_selector: usize = grab_number();
+
+                    let (_, constructor, _) = EXAMPLES
+                            .iter()
+                            .find(|(id, _, _)| *id == dfa_selector)
+                            .expect("Invalid choice");
+
+                    constructor()
+                }
+                _ => {
+                    return Err(
+                        io::Error::new(
+                            io::ErrorKind::InvalidInput, 
+                            "Please enter [json] or [example]"
+                        )
+                    );
+                }
+            };
+
             println!();
-        }
-        "test" => {
-            let end: usize = test.unwrap_or("").len();
 
-            for i in 0..end {
-                let next: char = test.unwrap_or("").chars().nth(i).unwrap();
-                
-                state = dfa.transitions.get(&(state, next)).unwrap().clone();
+            DFA::visualize(&dfa);
+
+            println!();
+            println!("DFA constructed. Please select input type:");
+            println!("1 : Generate a random input stream\n2 : Specify input");
+
+            let input_type: usize = grab_number();
+
+            println!();
+
+            match input_type {
+                1 => {
+                    simulate(dfa, "random", None);
+                },
+                2 => {
+                    println!("Please enter input:");
+                    
+                    let input: String = grab_string(Some(&dfa));
+
+                    simulate(dfa, "test", Some(&input.trim()));
+                },
+                _ => { println!("Invalid input") }
             }
-        }
+        },
         _ => {}
     }
 
-    if dfa.accept.contains(&state) {
-        println!("TRUE");
-        true
-    } else {
-        println!("FALSE");
-        false
-    }
-}
-
-fn main() {
-    let dfa: DFA = DFA::starts_ends_a();
-
-    simulate(dfa, "random", None);
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn empty_input() {
-        let dfa: DFA = DFA::even_zeros();
-
-        let result: bool = simulate(dfa, "test", None);
-
-        assert_eq!(result, true)
-    }
-
-    #[test]
-    fn even_input() {
-        let dfa: DFA = DFA::even_zeros();
-
-        let result: bool = simulate(dfa, "test", Some("00"));
-
-        assert_eq!(result, true)
-    }
-
-    #[test]
-    fn odd_input() {
-        let dfa: DFA = DFA::even_zeros();
-
-        let result: bool = simulate(dfa, "test", Some("01"));
-
-        assert_eq!(result, false)
-    }
-
-    #[test]
-    fn all_ones() {
-        let dfa: DFA = DFA::even_zeros();
-
-        let result: bool = simulate(dfa, "test", Some("111"));
-
-        assert_eq!(result, true)
-    }
-
-    #[test]
-    fn single_zero() {
-        let dfa: DFA = DFA::even_zeros();
-
-        let result: bool = simulate(dfa, "test", Some("0"));
-
-        assert_eq!(result, false)
-    }
-
-    #[test]
-    fn even_zeros_with_ones() {
-        let dfa: DFA = DFA::even_zeros();
-
-        let result: bool = simulate(dfa, "test", Some("0101010"));
-
-        assert_eq!(result, true);
-    }
-
-    #[test]
-    fn odd_zeros_with_ones() {
-        let dfa: DFA = DFA::even_zeros();
-
-        let result: bool = simulate(dfa, "test", Some("101010"));
-
-        assert_eq!(result, false);
-    }
-
-    #[test]
-    fn long_input_even_zeros() {
-        let dfa: DFA = DFA::even_zeros();
-
-        let result: bool = simulate(dfa, "test", Some("0".repeat(100).as_str()));
-        
-        assert_eq!(result, true);
-    }
+    Ok(())
 }
