@@ -1,3 +1,5 @@
+// I'll be writing up some stuff for docs in this branch
+
 mod dfa;
 
 use clap::{arg, Command};
