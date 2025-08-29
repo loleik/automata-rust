@@ -4,9 +4,6 @@ use serde::{Serialize, Deserialize};
 use serde::de::{self, Visitor};
 use serde_json::to_string_pretty;
 
-// Now working on json branch
-// This branch is for integrating json in a number of ways
-
 #[derive(Serialize, Deserialize)]
 pub struct DFA {
     states: HashSet<String>, // Set of all states, Q
