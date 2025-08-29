@@ -80,7 +80,21 @@ fn main() -> io::Result<()> {
                     println!("Give me a file name!");
                     let json_data: String = fs::read_to_string(grab_string(None))?;
 
-                    DFA::de_json(&json_data)
+                    match DFA::de_json(&json_data) {
+                        Ok(dfa) => dfa,
+                        Err(errors) => {
+                            for e in errors {
+                                eprintln!(" - {e}");
+                            };
+
+                            return Err(
+                                io::Error::new(
+                                    io::ErrorKind::InvalidInput, 
+                                    "There were errors with the provided file"
+                                )
+                            );
+                        }
+                    }
                 }
                 "example" => {
                     for (x, _, z) in EXAMPLES {

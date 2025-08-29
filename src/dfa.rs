@@ -144,8 +144,58 @@ impl DFA {
         println!("{}", to_string_pretty(dfa).unwrap())
     }
 
-    pub fn de_json(json_data: &str) -> DFA {
-        serde_json::from_str(json_data).unwrap()
+    pub fn validate(&self) -> Result<(), Vec<String>> {
+        let mut errors: Vec<String> = Vec::new();
+
+        if !self.states.contains(&self.start) {
+            errors.push(format!(
+                "Start state '{}' not in states list", 
+                self.start
+            ))
+        }
+
+        self.accept.iter().for_each(|acc| {
+            if !self.states.contains(acc) {
+                errors.push(format!(
+                    "Accept state '{}' not in states list",
+                    acc
+                ));
+            }
+        });
+
+        self.transitions.iter().for_each(|(key,target)| {
+            if !self.states.contains(&key.0) {
+                errors.push(format!(
+                    "Transition from unknown state '{}'", 
+                    key.0
+                ));
+            }
+
+            if !self.alphabet.contains(&key.1) {
+                errors.push(format!(
+                    "Transition with unknown symbol '{}'", 
+                    key.1
+                ));
+            }
+            if !self.states.contains(target) {
+                errors.push(format!(
+                    "Transition to unknown state '{}'", 
+                    target
+                ));
+            }
+        });
+
+        if errors.is_empty() { Ok(()) }
+        else { Err(errors) }
+    }
+
+    pub fn de_json(json_data: &str) -> Result<DFA, Vec<String>> {
+        let dfa: DFA = serde_json::from_str(json_data).unwrap();
+
+        match dfa.validate() {
+            Ok(()) => Ok(dfa),
+            Err(errors) => Err(errors),
+        }
     }
 }
 
