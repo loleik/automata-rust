@@ -10,7 +10,7 @@ use serde_json::to_string_pretty;
 #[derive(Serialize, Deserialize)]
 pub struct DFA {
     states: HashSet<String>, // Set of all states, Q
-    alphabet: HashSet<char>, // Set of input symbols, Σ
+    pub alphabet: HashSet<char>, // Set of input symbols, Σ
     transitions: HashMap<TransitionKey, String>, // Transition functions, δ: Q × Σ → Q
     start: String, // Initial state, q_0 ∈ Q
     accept: HashSet<String>, // Set of accepting/final states, F ⊆ Q
@@ -170,10 +170,10 @@ pub fn simulate(
                 let ind: usize = rand::random_range(0..dfa.alphabet.len());
                 state.1 = *dfa.alphabet.iter().nth(ind).unwrap();
 
-                /*println!("{:?} -> {}",
+                println!("{:?} -> {}",
                     state,
                     dfa.transitions.get(&state).unwrap().clone()
-                );*/
+                );
                 
                 state.0 = dfa.transitions.get(&state).unwrap().clone();
             }
@@ -181,10 +181,14 @@ pub fn simulate(
         }
         "test" => {
             let end: usize = test.unwrap_or("").len();
-            println!("{test:?}");
 
             for i in 0..end {
                 state.1 = test.unwrap_or("").chars().nth(i).unwrap();
+
+                println!("  {:?} -> {}",
+                    state,
+                    dfa.transitions.get(&state).unwrap().clone()
+                );
                 
                 state.0 = dfa.transitions.get(&state).unwrap().clone();
             }

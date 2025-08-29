@@ -20,8 +20,52 @@ fn cli() -> Command {
         )
 }
 
+fn cls() {
+    print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
+}
+
+fn grab_number() -> usize {
+    loop {
+        let mut input: String = String::new();
+
+        io::stdin()
+            .read_line(&mut input)
+            .expect("Failed");
+
+        match input.trim().parse::<usize>() {
+            Ok(n) => return n,
+            Err(_) => {
+                println!("Invalid input, please input a number");
+                continue;
+            }
+        };
+    };
+}
+
+fn grab_string(dfa: &DFA) -> String {
+    'outer: loop {
+        let mut input: String = String::new();
+
+        io::stdin()
+            .read_line(&mut input)
+            .expect("Failed");
+
+        for c in input.trim().chars() {
+            if !dfa.alphabet.contains(&c) {
+                println!("Input must be in the DFA alphabet {c}");
+                println!("{:?}", dfa.alphabet);
+                continue 'outer;
+            }
+        }
+
+        return input.trim().to_string()
+    };
+}
+
 fn main() {
     let matches: clap::ArgMatches = cli().get_matches();
+
+    cls();
 
     match matches.subcommand() {
         Some(("dfa", sub_matches)) => {
@@ -29,24 +73,12 @@ fn main() {
 
             if mode.as_str() == "json" {}
             else if mode == "example" {
-                print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
 
                 for (x, _, z) in EXAMPLES {
                     println!("{x} : {z}")
                 }
 
-                let mut input: String = String::new();
-                io::stdin()
-                    .read_line(&mut input)
-                    .expect("Failed");
-
-                let dfa_selector: usize = match input.trim().parse::<usize>() {
-                    Ok(n) => n,
-                    Err(_) => {
-                        println!("Invalid input, please input a number");
-                        return;
-                    }
-                };
+                let dfa_selector: usize = grab_number();
 
                 let (_, constructor, _) = EXAMPLES
                         .iter()
@@ -55,36 +87,30 @@ fn main() {
 
                 let dfa: DFA = constructor();
 
+                println!();
+
                 DFA::visualize(&dfa);
 
+                println!();
                 println!("DFA constructed. Please select input type:");
                 println!("1 : Generate a random input stream\n2 : Specify input");
 
-                input = String::new();
-                io::stdin()
-                    .read_line(&mut input)
-                    .expect("Failed");
+                let input_type: usize = grab_number();
 
-                let input_type: usize = match input.trim().parse::<usize>() {
-                    Ok(n) => n,
-                    Err(_) => {
-                        println!("Invalid input, please input a number");
-                        return;
-                    }
-                };
+                println!();
 
                 match input_type {
                     1 => {
                         simulate(dfa, "random", None);
                     },
                     2 => {
-                        io::stdin()
-                            .read_line(&mut input)
-                            .expect("Failed");
+                        println!("Please enter input:");
+                        
+                        let input: String = grab_string(&dfa);
 
-                        simulate(dfa, "test", Some(&input));
+                        simulate(dfa, "test", Some(&input.trim()));
                     },
-                    _ => {println!("Invalid input")}
+                    _ => { println!("Invalid input") }
                 }
 
                 //println!("----------");
