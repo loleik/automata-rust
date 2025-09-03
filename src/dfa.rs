@@ -11,7 +11,7 @@ pub struct Dfa {
     transitions: HashMap<TransitionKey, String>, // Transition functions, δ: Q × Σ → Q
     start: String,                               // Initial state, q_0 ∈ Q
     accept: HashSet<String>,                     // Set of accepting/final states, F ⊆ Q
-    description: Option<String>,                 // Optional description
+    description: Option<String>,
 }
 
 #[derive(PartialEq, Eq, Hash, Debug)]
