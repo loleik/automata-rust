@@ -52,11 +52,11 @@ fn grab_string(dfa: Option<&Dfa>) -> String {
         let mut input: String = String::new();
 
         io::stdin().read_line(&mut input).expect("Failed");
-        if dfa.is_some() {
+        if let Some(dfa) = dfa {
             for c in input.trim().chars() {
-                if !dfa.unwrap().alphabet.contains(&c) {
+                if !dfa.alphabet.contains(&c) {
                     println!("Input must be in the DFA alphabet {c}");
-                    println!("{:?}", dfa.unwrap().alphabet);
+                    println!("{:?}", dfa.alphabet);
                     continue 'outer;
                 }
             }
