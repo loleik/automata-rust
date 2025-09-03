@@ -1,17 +1,17 @@
 use core::fmt;
-use std::collections::{HashSet, HashMap};
-use serde::{Serialize, Deserialize};
 use serde::de::{self, Visitor};
+use serde::{Deserialize, Serialize};
 use serde_json::to_string_pretty;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Serialize, Deserialize)]
-pub struct DFA {
-    states: HashSet<String>, // Set of all states, Q
-    pub alphabet: HashSet<char>, // Set of input symbols, Σ
+pub struct Dfa {
+    states: HashSet<String>,                     // Set of all states, Q
+    pub alphabet: HashSet<char>,                 // Set of input symbols, Σ
     transitions: HashMap<TransitionKey, String>, // Transition functions, δ: Q × Σ → Q
-    start: String, // Initial state, q_0 ∈ Q
-    accept: HashSet<String>, // Set of accepting/final states, F ⊆ Q
-    description: Option<String>
+    start: String,                               // Initial state, q_0 ∈ Q
+    accept: HashSet<String>,                     // Set of accepting/final states, F ⊆ Q
+    description: Option<String>,
 }
 
 #[derive(PartialEq, Eq, Hash, Debug)]
@@ -20,7 +20,7 @@ pub struct TransitionKey(pub String, pub char);
 impl Serialize for TransitionKey {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: serde::Serializer 
+        S: serde::Serializer,
     {
         let key: String = format!("{}:{}", self.0, self.1);
         serializer.serialize_str(&key)
@@ -30,12 +30,11 @@ impl Serialize for TransitionKey {
 impl<'de> Deserialize<'de> for TransitionKey {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
-        D: serde::Deserializer<'de> 
+        D: serde::Deserializer<'de>,
     {
         struct TransitionKeyVisitor;
 
-
-        impl<'de> Visitor<'de> for TransitionKeyVisitor {
+        impl Visitor<'_> for TransitionKeyVisitor {
             type Value = TransitionKey;
 
             fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -78,62 +77,68 @@ impl<'de> Deserialize<'de> for TransitionKey {
     }
 }
 
-pub static EXAMPLES: [(usize, fn() -> DFA, &str); 2] = [
-    (1, DFA::even_zeros, "Check if a binary string contains an even number of 0's"),
-    (2, DFA::starts_ends_a, "Check if a string starts and ends with an a")
+type Example = (usize, fn() -> Dfa, &'static str);
+
+pub static EXAMPLES: [Example; 2] = [
+    (
+        1,
+        Dfa::even_zeros,
+        "Check if a binary string contains an even number of 0's",
+    ),
+    (
+        2,
+        Dfa::starts_ends_a,
+        "Check if a string starts and ends with an a",
+    ),
 ];
 
-impl DFA {
+impl Dfa {
     // Generate a basic DFA from the first example at:
     // https://en.wikipedia.org/wiki/Deterministic_finite_automaton
-    pub fn even_zeros() -> DFA {
+    pub fn even_zeros() -> Dfa {
         let transitions: HashMap<TransitionKey, String> = HashMap::from([
             (TransitionKey("S1".to_string(), '0'), "S2".to_string()),
             (TransitionKey("S1".to_string(), '1'), "S1".to_string()),
             (TransitionKey("S2".to_string(), '0'), "S1".to_string()),
-            (TransitionKey("S2".to_string(), '1'), "S2".to_string())  
+            (TransitionKey("S2".to_string(), '1'), "S2".to_string()),
         ]);
 
-        DFA {
-            states: HashSet::from([
-                "S1".to_string(),
-                "S2".to_string()
-            ]),
+        Dfa {
+            states: HashSet::from(["S1".to_string(), "S2".to_string()]),
             alphabet: HashSet::from(['0', '1']),
-            transitions: transitions,
+            transitions,
             start: "S1".to_string(),
             accept: HashSet::from(["S1".to_string()]),
-            description: Some("Check if a binary string contains an even number of 0's".to_string())
+            description: Some(
+                "Check if a binary string contains an even number of 0's".to_string(),
+            ),
         }
     }
 
-    pub fn starts_ends_a() -> DFA {
+    pub fn starts_ends_a() -> Dfa {
         let transitions: HashMap<TransitionKey, String> = HashMap::from([
             (TransitionKey("S0".to_string(), 'a'), "S1".to_string()),
             (TransitionKey("S0".to_string(), 'b'), "S3".to_string()),
-
             (TransitionKey("S1".to_string(), 'a'), "S1".to_string()),
             (TransitionKey("S1".to_string(), 'b'), "S2".to_string()),
-
             (TransitionKey("S2".to_string(), 'a'), "S1".to_string()),
             (TransitionKey("S2".to_string(), 'b'), "S2".to_string()),
-
             (TransitionKey("S3".to_string(), 'a'), "S3".to_string()),
-            (TransitionKey("S3".to_string(), 'b'), "S3".to_string())
+            (TransitionKey("S3".to_string(), 'b'), "S3".to_string()),
         ]);
 
-        DFA {
+        Dfa {
             states: HashSet::from([
                 "S0".to_string(),
                 "S1".to_string(),
                 "S2".to_string(),
-                "S3".to_string()
+                "S3".to_string(),
             ]),
             alphabet: HashSet::from(['a', 'b']),
-            transitions: transitions,
+            transitions,
             start: "S0".to_string(),
             accept: HashSet::from(["S1".to_string()]),
-            description: Some("Check if a string starts and ends with an a".to_string())
+            description: Some("Check if a string starts and ends with an a".to_string()),
         }
     }
 
@@ -145,49 +150,37 @@ impl DFA {
         let mut errors: Vec<String> = Vec::new();
 
         if !self.states.contains(&self.start) {
-            errors.push(format!(
-                "Start state '{}' not in states list", 
-                self.start
-            ))
+            errors.push(format!("Start state '{}' not in states list", self.start))
         }
 
         self.accept.iter().for_each(|acc| {
             if !self.states.contains(acc) {
-                errors.push(format!(
-                    "Accept state '{}' not in states list",
-                    acc
-                ));
+                errors.push(format!("Accept state '{}' not in states list", acc));
             }
         });
 
-        self.transitions.iter().for_each(|(key,target)| {
+        self.transitions.iter().for_each(|(key, target)| {
             if !self.states.contains(&key.0) {
-                errors.push(format!(
-                    "Transition from unknown state '{}'", 
-                    key.0
-                ));
+                errors.push(format!("Transition from unknown state '{}'", key.0));
             }
 
             if !self.alphabet.contains(&key.1) {
-                errors.push(format!(
-                    "Transition with unknown symbol '{}'", 
-                    key.1
-                ));
+                errors.push(format!("Transition with unknown symbol '{}'", key.1));
             }
             if !self.states.contains(target) {
-                errors.push(format!(
-                    "Transition to unknown state '{}'", 
-                    target
-                ));
+                errors.push(format!("Transition to unknown state '{}'", target));
             }
         });
 
-        if errors.is_empty() { Ok(()) }
-        else { Err(errors) }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
     }
 
-    pub fn de_json(json_data: &str) -> Result<DFA, Vec<String>> {
-        let dfa: DFA = serde_json::from_str(json_data).unwrap();
+    pub fn de_json(json_data: &str) -> Result<Dfa, Vec<String>> {
+        let dfa: Dfa = serde_json::from_str(json_data).unwrap();
 
         match dfa.validate() {
             Ok(()) => Ok(dfa),
@@ -195,48 +188,46 @@ impl DFA {
         }
     }
 
-    pub fn simulate(
-        &self,
-        mode: &str,
-        test: Option<&str>
-    ) -> bool {
+    pub fn simulate(&self, mode: &str, test: Option<&str>) -> bool {
         let mut state: TransitionKey = TransitionKey(self.start.to_string(), 'x');
-    
+
         match mode {
             "random" => {
                 let end: u8 = rand::random_range(0..u8::MAX); // Maximum length for input stream
-    
+
                 for _ in 0..end {
-                     // Generate the next value of the input stream
+                    // Generate the next value of the input stream
                     let ind: usize = rand::random_range(0..self.alphabet.len());
                     state.1 = *self.alphabet.iter().nth(ind).unwrap();
-    
-                    println!("{:?} -> {}",
+
+                    println!(
+                        "{:?} -> {}",
                         state,
                         self.transitions.get(&state).unwrap().clone()
                     );
-                    
+
                     state.0 = self.transitions.get(&state).unwrap().clone();
                 }
                 println!();
             }
             "test" => {
                 let end: usize = test.unwrap_or("").len();
-    
+
                 for i in 0..end {
                     state.1 = test.unwrap_or("").chars().nth(i).unwrap();
-    
-                    println!("  {:?} -> {}",
+
+                    println!(
+                        "  {:?} -> {}",
                         state,
                         self.transitions.get(&state).unwrap().clone()
                     );
-                    
+
                     state.0 = self.transitions.get(&state).unwrap().clone();
                 }
             }
             _ => {}
         }
-    
+
         if self.accept.contains(&state.0) {
             println!("TRUE");
             true
@@ -247,14 +238,13 @@ impl DFA {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn empty_input() {
-        let dfa: DFA = DFA::even_zeros();
+        let dfa: Dfa = Dfa::even_zeros();
 
         let result: bool = dfa.simulate("test", None);
 
@@ -263,7 +253,7 @@ mod tests {
 
     #[test]
     fn even_input() {
-        let dfa: DFA = DFA::even_zeros();
+        let dfa: Dfa = Dfa::even_zeros();
 
         let result: bool = dfa.simulate("test", Some("00"));
 
@@ -272,7 +262,7 @@ mod tests {
 
     #[test]
     fn odd_input() {
-        let dfa: DFA = DFA::even_zeros();
+        let dfa: Dfa = Dfa::even_zeros();
 
         let result: bool = dfa.simulate("test", Some("01"));
 
@@ -281,7 +271,7 @@ mod tests {
 
     #[test]
     fn all_ones() {
-        let dfa: DFA = DFA::even_zeros();
+        let dfa: Dfa = Dfa::even_zeros();
 
         let result: bool = dfa.simulate("test", Some("1111"));
 
@@ -290,7 +280,7 @@ mod tests {
 
     #[test]
     fn single_zero() {
-        let dfa: DFA = DFA::even_zeros();
+        let dfa: Dfa = Dfa::even_zeros();
 
         let result: bool = dfa.simulate("test", Some("0"));
 
@@ -299,7 +289,7 @@ mod tests {
 
     #[test]
     fn even_zeros_with_ones() {
-        let dfa: DFA = DFA::even_zeros();
+        let dfa: Dfa = Dfa::even_zeros();
 
         let result: bool = dfa.simulate("test", Some("0101010"));
 
@@ -308,7 +298,7 @@ mod tests {
 
     #[test]
     fn odd_zeros_with_ones() {
-        let dfa: DFA = DFA::even_zeros();
+        let dfa: Dfa = Dfa::even_zeros();
 
         let result: bool = dfa.simulate("test", Some("010101"));
 
@@ -317,13 +307,13 @@ mod tests {
 
     #[test]
     fn long_input_even_zeros() {
-        let dfa: DFA = DFA::even_zeros();
+        let dfa: Dfa = Dfa::even_zeros();
 
         let result: bool = dfa.simulate(
-            "test", 
-            Some("000001111100000111110000011111000001111100000111110000011111"
-        ));
-        
+            "test",
+            Some("000001111100000111110000011111000001111100000111110000011111"),
+        );
+
         assert_eq!(result, true);
     }
 }
