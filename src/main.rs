@@ -1,14 +1,13 @@
-// I'll be writing up some stuff for docs in this branch
-
 mod dfa;
 
 use clap::{arg, Command};
 use std::io::{self, Write};
 use std::fs;
-use dfa::{DFA, simulate};
+use dfa::DFA;
 
 use crate::dfa::EXAMPLES;
 
+/// Command line interface (CLI) for passing arguments 
 fn cli() -> Command {
     Command::new("automata")
         .about("Several different automata based simulations")
@@ -23,12 +22,14 @@ fn cli() -> Command {
         )
 }
 
+/// Clear terminal, separated to tidy up code
 fn cls() {
     print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
 
     io::stdout().flush().unwrap();
 }
 
+/// Grabs a usize input from the terminal
 fn grab_number() -> usize {
     loop {
         let mut input: String = String::new();
@@ -47,6 +48,7 @@ fn grab_number() -> usize {
     };
 }
 
+/// Grabs a string input from the terminal
 fn grab_string(dfa: Option<&DFA>) -> String {
     'outer: loop {
         let mut input: String = String::new();
@@ -68,6 +70,7 @@ fn grab_string(dfa: Option<&DFA>) -> String {
     };
 }
 
+/// Main function, runs the simulations
 fn main() -> io::Result<()> {
     let matches: clap::ArgMatches = cli().get_matches();
 
@@ -124,7 +127,7 @@ fn main() -> io::Result<()> {
 
             println!();
 
-            DFA::visualize(&dfa);
+            dfa.visualize();
 
             println!();
             println!("DFA constructed. Please select input type:");
@@ -136,14 +139,14 @@ fn main() -> io::Result<()> {
 
             match input_type {
                 1 => {
-                    simulate(dfa, "random", None);
+                    dfa.simulate("random", None);
                 },
                 2 => {
                     println!("Please enter input:");
                     
                     let input: String = grab_string(Some(&dfa));
 
-                    simulate(dfa, "test", Some(&input.trim()));
+                    dfa.simulate("test", Some(&input.trim()));
                 },
                 _ => { println!("Invalid input") }
             }

@@ -137,8 +137,8 @@ impl DFA {
         }
     }
 
-    pub fn visualize(dfa: &DFA) {
-        println!("{}", to_string_pretty(dfa).unwrap())
+    pub fn visualize(&self) {
+        println!("{}", to_string_pretty(self).unwrap())
     }
 
     pub fn validate(&self) -> Result<(), Vec<String>> {
@@ -194,56 +194,56 @@ impl DFA {
             Err(errors) => Err(errors),
         }
     }
-}
 
-pub fn simulate(
-    dfa: DFA,
-    mode: &str,
-    test: Option<&str>
-) -> bool {
-    let mut state: TransitionKey = TransitionKey(dfa.start, 'x');
-
-    match mode {
-        "random" => {
-            let end: u8 = rand::random_range(0..u8::MAX); // Maximum length for input stream
-
-            for _ in 0..end {
-                 // Generate the next value of the input stream
-                let ind: usize = rand::random_range(0..dfa.alphabet.len());
-                state.1 = *dfa.alphabet.iter().nth(ind).unwrap();
-
-                println!("{:?} -> {}",
-                    state,
-                    dfa.transitions.get(&state).unwrap().clone()
-                );
-                
-                state.0 = dfa.transitions.get(&state).unwrap().clone();
+    pub fn simulate(
+        &self,
+        mode: &str,
+        test: Option<&str>
+    ) -> bool {
+        let mut state: TransitionKey = TransitionKey(self.start.to_string(), 'x');
+    
+        match mode {
+            "random" => {
+                let end: u8 = rand::random_range(0..u8::MAX); // Maximum length for input stream
+    
+                for _ in 0..end {
+                     // Generate the next value of the input stream
+                    let ind: usize = rand::random_range(0..self.alphabet.len());
+                    state.1 = *self.alphabet.iter().nth(ind).unwrap();
+    
+                    println!("{:?} -> {}",
+                        state,
+                        self.transitions.get(&state).unwrap().clone()
+                    );
+                    
+                    state.0 = self.transitions.get(&state).unwrap().clone();
+                }
+                println!();
             }
-            println!();
-        }
-        "test" => {
-            let end: usize = test.unwrap_or("").len();
-
-            for i in 0..end {
-                state.1 = test.unwrap_or("").chars().nth(i).unwrap();
-
-                println!("  {:?} -> {}",
-                    state,
-                    dfa.transitions.get(&state).unwrap().clone()
-                );
-                
-                state.0 = dfa.transitions.get(&state).unwrap().clone();
+            "test" => {
+                let end: usize = test.unwrap_or("").len();
+    
+                for i in 0..end {
+                    state.1 = test.unwrap_or("").chars().nth(i).unwrap();
+    
+                    println!("  {:?} -> {}",
+                        state,
+                        self.transitions.get(&state).unwrap().clone()
+                    );
+                    
+                    state.0 = self.transitions.get(&state).unwrap().clone();
+                }
             }
+            _ => {}
         }
-        _ => {}
-    }
-
-    if dfa.accept.contains(&state.0) {
-        println!("TRUE");
-        true
-    } else {
-        println!("FALSE");
-        false
+    
+        if self.accept.contains(&state.0) {
+            println!("TRUE");
+            true
+        } else {
+            println!("FALSE");
+            false
+        }
     }
 }
 
@@ -256,7 +256,7 @@ mod tests {
     fn empty_input() {
         let dfa: DFA = DFA::even_zeros();
 
-        let result: bool = simulate(dfa, "test", None);
+        let result: bool = dfa.simulate("test", None);
 
         assert_eq!(result, true)
     }
@@ -265,7 +265,7 @@ mod tests {
     fn even_input() {
         let dfa: DFA = DFA::even_zeros();
 
-        let result: bool = simulate(dfa, "test", Some("00"));
+        let result: bool = dfa.simulate("test", Some("00"));
 
         assert_eq!(result, true)
     }
@@ -274,7 +274,7 @@ mod tests {
     fn odd_input() {
         let dfa: DFA = DFA::even_zeros();
 
-        let result: bool = simulate(dfa, "test", Some("01"));
+        let result: bool = dfa.simulate("test", Some("01"));
 
         assert_eq!(result, false)
     }
@@ -283,7 +283,7 @@ mod tests {
     fn all_ones() {
         let dfa: DFA = DFA::even_zeros();
 
-        let result: bool = simulate(dfa, "test", Some("111"));
+        let result: bool = dfa.simulate("test", Some("1111"));
 
         assert_eq!(result, true)
     }
@@ -292,7 +292,7 @@ mod tests {
     fn single_zero() {
         let dfa: DFA = DFA::even_zeros();
 
-        let result: bool = simulate(dfa, "test", Some("0"));
+        let result: bool = dfa.simulate("test", Some("0"));
 
         assert_eq!(result, false)
     }
@@ -301,7 +301,7 @@ mod tests {
     fn even_zeros_with_ones() {
         let dfa: DFA = DFA::even_zeros();
 
-        let result: bool = simulate(dfa, "test", Some("0101010"));
+        let result: bool = dfa.simulate("test", Some("0101010"));
 
         assert_eq!(result, true);
     }
@@ -310,7 +310,7 @@ mod tests {
     fn odd_zeros_with_ones() {
         let dfa: DFA = DFA::even_zeros();
 
-        let result: bool = simulate(dfa, "test", Some("101010"));
+        let result: bool = dfa.simulate("test", Some("010101"));
 
         assert_eq!(result, false);
     }
@@ -319,7 +319,10 @@ mod tests {
     fn long_input_even_zeros() {
         let dfa: DFA = DFA::even_zeros();
 
-        let result: bool = simulate(dfa, "test", Some("0".repeat(100).as_str()));
+        let result: bool = dfa.simulate(
+            "test", 
+            Some("000001111100000111110000011111000001111100000111110000011111"
+        ));
         
         assert_eq!(result, true);
     }
