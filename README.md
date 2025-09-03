@@ -1,5 +1,6 @@
 # automata-rust
 A Rust program for simulating different automata.
+Docs can be found [here](https://loleik.github.io/automata-rust/).
 
-Currently implementing:
-+ Hard-coded DFA (Deterministic Finite Automata)
+Currently implemented:
++ DFA simulation with either provided examples or input from JSON files.
